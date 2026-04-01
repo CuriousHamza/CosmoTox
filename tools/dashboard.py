@@ -28,12 +28,12 @@ if not DATABASE_PATH:
 # ── Page config ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="CosmoToxs — Cosmetic Toxicants",
+    page_title="CosmoTox — Cosmetic Toxicants",
     page_icon="🧪",
     layout="wide",
 )
 
-st.title("🧪 CosmoToxs: Cosmetic Toxicants Research")
+st.title("🧪 CosmoTox: Cosmetic Toxicants Research")
 st.caption("Research literature from PubMed · 2000–2026 · Human studies only · Cosmetics context")
 
 st.markdown("""
