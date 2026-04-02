@@ -390,7 +390,7 @@ def is_review(title: str) -> bool:
     t = title.lower()
     return any(kw in t for kw in REVIEW_KEYWORDS)
 
-cols = ["pmid", "title", "pub_year", "toxicant", "journal", "organs"]
+cols = ["pmid", "title", "abstract", "pub_year", "toxicant", "journal", "organs"]
 if "health_effects" in filtered.columns:
     cols.append("health_effects")
 if "products" in filtered.columns:
@@ -411,6 +411,7 @@ display_df = display_df[["pmid_link"] + [c for c in display_df.columns if c not 
 col_config = {
     "pmid_link": st.column_config.LinkColumn("Open", display_text="🔗 Open", width="small"),
     "title": st.column_config.TextColumn("Title", width="large"),
+    "abstract": st.column_config.TextColumn("Abstract", width="large"),
     "pub_year": st.column_config.NumberColumn("Year", format="%d"),
     "toxicant": "Toxicant",
     "journal": "Journal",
@@ -442,7 +443,7 @@ else:
 # ── Relevance tables ───────────────────────────────────────────────────────────
 
 if "relevant" in filtered.columns:
-    rel_cols = ["pmid", "title", "pub_year", "toxicant", "journal", "organs"]
+    rel_cols = ["pmid", "title", "abstract", "pub_year", "toxicant", "journal", "organs"]
     if "relevant" in filtered.columns:
         rel_cols.append("relevant")
     if "relevance_reason" in filtered.columns:
@@ -458,6 +459,7 @@ if "relevant" in filtered.columns:
     rel_col_config = {
         "pmid_link": st.column_config.LinkColumn("Open", display_text="🔗 Open", width="small"),
         "title": st.column_config.TextColumn("Title", width="large"),
+        "abstract": st.column_config.TextColumn("Abstract", width="large"),
         "pub_year": st.column_config.NumberColumn("Year", format="%d"),
         "toxicant": "Toxicant",
         "journal": "Journal",
