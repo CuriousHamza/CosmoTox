@@ -75,8 +75,25 @@ def build_combined():
         .apply(lambda x: " | ".join(sorted(set(x))))
         .reset_index()
     )
+
+    # For relevant/relevance_reason: take first non-empty value per PMID
+    extra_merges = {}
+    for col in ("relevant", "relevance_reason"):
+        if col in combined.columns:
+            extra_merges[col] = (
+                combined[combined["pmid"].notna()]
+                .groupby("pmid")[col]
+                .apply(lambda x: next((v for v in x if v.strip()), ""))
+                .reset_index()
+            )
+
     combined = combined.drop_duplicates(subset="pmid", keep="first").drop(columns=["toxicant"])
+    drop_extra = [c for c in extra_merges if c in combined.columns]
+    if drop_extra:
+        combined = combined.drop(columns=drop_extra)
     combined = combined.merge(toxicant_merged, on="pmid")
+    for col, merged_df in extra_merges.items():
+        combined = combined.merge(merged_df, on="pmid")
 
     combined.to_csv(COMBINED_CSV, index=False)
     return combined
@@ -421,3 +438,47 @@ if review_df.empty:
     st.info("No review papers found for the current filters.")
 else:
     st.dataframe(review_df, column_config=col_config, width='stretch', hide_index=True, row_height=80)
+
+# ── Relevance tables ───────────────────────────────────────────────────────────
+
+if "relevant" in filtered.columns:
+    rel_cols = ["pmid", "title", "pub_year", "toxicant", "journal", "organs"]
+    if "relevant" in filtered.columns:
+        rel_cols.append("relevant")
+    if "relevance_reason" in filtered.columns:
+        rel_cols.append("relevance_reason")
+
+    rel_display = filtered[rel_cols].copy()
+    rel_display["pmid_link"] = rel_display["pmid"].apply(
+        lambda x: f"https://pubmed.ncbi.nlm.nih.gov/{x}/"
+    )
+    rel_display = rel_display[["pmid_link"] + [c for c in rel_display.columns if c not in ("pmid_link", "pmid")]]
+    rel_display = rel_display.sort_values("pub_year", ascending=True)
+
+    rel_col_config = {
+        "pmid_link": st.column_config.LinkColumn("Open", display_text="🔗 Open", width="small"),
+        "title": st.column_config.TextColumn("Title", width="large"),
+        "pub_year": st.column_config.NumberColumn("Year", format="%d"),
+        "toxicant": "Toxicant",
+        "journal": "Journal",
+        "organs": "Organs",
+    }
+    if "relevant" in rel_display.columns:
+        rel_col_config["relevant"] = st.column_config.TextColumn("Relevant", width="small")
+    if "relevance_reason" in rel_display.columns:
+        rel_col_config["relevance_reason"] = st.column_config.TextColumn("Relevance Reason", width="large")
+
+    relevant_df = rel_display[rel_display["relevant"].str.lower().str.strip() == "yes"]
+    not_relevant_df = rel_display[rel_display["relevant"].str.lower().str.strip() == "no"]
+
+    st.subheader(f"Relevant Papers ({len(relevant_df)} results)")
+    if relevant_df.empty:
+        st.info("No relevant papers found for the current filters.")
+    else:
+        st.dataframe(relevant_df, column_config=rel_col_config, width='stretch', hide_index=True, row_height=80)
+
+    st.subheader(f"Non-Relevant Papers ({len(not_relevant_df)} results)")
+    if not_relevant_df.empty:
+        st.info("No non-relevant papers found for the current filters.")
+    else:
+        st.dataframe(not_relevant_df, column_config=rel_col_config, width='stretch', hide_index=True, row_height=80)
